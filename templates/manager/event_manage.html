@@ -1,0 +1,99 @@
+<!doctype html>
+{% load static %}
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <link rel="stylesheet" href="{% static 'css/add_team.css' %}">
+
+    <style>
+        table, thead, tbody, tr, th, td {
+            border: 1px solid black;
+            border-collapse: collapse;
+        }
+
+        table {
+            width: 100%;
+        }
+
+        td > input {
+            border: none;
+            background-color: inherit;
+            width: calc(100% - 10px);
+            height: 30px;
+            text-align: center;
+        }
+    </style>
+
+    <title>Document</title>
+</head>
+<body>
+
+    <div class="navbar">
+        <a class="menu-item" href="/">КнАГУ EVENT MANAGER</a>
+    </div>
+    <div class="content">
+
+        <h1>Оценивание {{ event.name }}</h1>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Название команды</th>
+                    {% for step in steps %}
+                        <th>
+                            Этап {{ step.number }}
+                        </th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for team in teams %}
+                    <tr>
+                        <td>{{ team.name }}</td>
+                        {% for step in steps %}
+                            <td>
+                                <input id="t-{{ team.id }}-s-{{ step.id }}" type="number"
+                                    placeholder="MAX: {{ step.max_scroe }}"
+                                        class="score-input"
+                                        onchange="update_score({{ team.id }}, {{ step.id }})"
+                                        {% for mark in marks %}
+                                            {% if mark.step == step and mark.team == team %}
+                                                 value="{{ mark.points }}"
+                                            {% endif %}
+                                        {% endfor %}
+                                >
+                            </td>
+                        {% endfor %}
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+    </div>
+
+    <script>
+        function update_score(tid, sid) {
+			let val = document.getElementById(`t-${tid}-s-${sid}`)
+
+            let xhr = new XMLHttpRequest();
+
+            xhr.open("POST", '/update_score', true);
+            xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+            xhr.responseType = "json"
+
+            xhr.onload = () => {
+                if (xhr.readyState === XMLHttpRequest.DONE && xhr.status !== 200) {
+                    val.value = xhr.response['old_value']
+                }
+            };
+
+            xhr.send(`tid=${tid}&sid=${sid}&val=${val.value}`);
+
+        }
+    </script>
+
+</body>
+</html>
