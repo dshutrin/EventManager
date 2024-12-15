@@ -5,6 +5,7 @@ from django.contrib.auth import authenticate, login as user_login, logout as use
 from django.contrib.auth.decorators import login_required
 from .models import *
 from .forms import *
+from pprint import pprint
 
 
 # Create your views here.
@@ -154,18 +155,26 @@ def event_results(request, eid):
 
 	max_score = sum([x.max_scroe for x in steps])
 
-	class TeamView:
-		def __init__(self, team):
-			self.team = team
-			self.perc = str((sum([x.points for x in marks if x.team == self.team]) / max_score) * 100).replace(',', '.')
+	if max_score:
+		class TeamView:
+			def __init__(self, team):
+				self.team = team
+				self.cscore = sum([x.points for x in marks if x.team == self.team])
+				self.perc = str((sum([x.points for x in marks if x.team == self.team]) / max_score) * 100).replace(',', '.')
 
-	teams = sorted([TeamView(x) for x in teams], key=lambda x: x.perc, reverse=True)
+		teams = sorted([TeamView(x) for x in teams], key=lambda x: x.perc, reverse=True)
 
-	return render(request, 'manager/event_results.html', {
-		'event': event,
-		'teams': teams,
-		'max_score': max_score
-	})
+		return render(request, 'manager/event_results.html', {
+			'event': event,
+			'teams': teams,
+			'max_score': max_score
+		})
+	else:
+		return render(request, 'manager/event_results.html', {
+			'event': event,
+			'teams': teams,
+			'max_score': 0
+		})
 
 
 @login_required
@@ -226,3 +235,45 @@ def game(request):
 	return render(request, 'manager/game.html', {
 		'best_score': best_score
 	})
+
+
+@login_required
+@csrf_exempt
+def get_results_event_(request, event_id):
+	if request.method == 'GET':
+
+		event = Event.objects.get(id=event_id)
+		teams = Team.objects.filter(event=event)
+
+		data = []
+		mx_score = sum([x.max_scroe for x in Step.objects.filter(event=event)])
+
+		for team in teams:
+			tms = Mark.objects.filter(step__event=event, team=team)
+			data.append({
+				'name': team.name,
+				'score': sum([x.points for x in tms]),
+				'perc': (sum([x.points for x in tms]) / mx_score) * 100,
+				'max_score': mx_score
+			})
+
+		data = sorted(data, key=lambda x: x['score'], reverse=True)
+
+		out_data = [
+			[]
+		]
+		counter = 0
+
+		for el in data:
+			counter += 1
+			if counter == 15:
+				counter = 0
+				out_data[-1].append(el)
+				out_data.append([])
+			else:
+				out_data[-1].append(el)
+
+		return JsonResponse({
+			'data': out_data,
+			'pages': len(out_data)
+		})

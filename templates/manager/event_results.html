@@ -47,17 +47,11 @@
                 <tr>
                     <th>Название команды</th>
                     <th>Прогресс</th>
-                    <th>Максимальный балл</th>
+                    <th>Баллы</th>
                 </tr>
             </thead>
-            <tbody>
-                {% for team in teams %}
-                    <tr>
-                        <td>{{ team.team.name }}</td>
-                        <td id="{{ team.team.id }}"></td>
-                        <td>{{ max_score }}</td>
-                    </tr>
-                {% endfor %}
+            <tbody id="res-tb">
+
             </tbody>
         </table>
 
@@ -65,22 +59,68 @@
 
     <script>
 
-        function set_progress(tid, perc) {
-			let td = document.getElementById(`${tid}`)
-            td.style = `
-                background: linear-gradient(to right, lightgreen 0px, lightgreen ${perc}%, gray ${perc}%, gray 100%);
-                width: 80%;
-                height: 50px;
-            `
+        function crete_row(data) {
+			return `<tr>
+                        <td>${data['name']}</td>
+                        <td id="2"
+                            style="background: linear-gradient(to right, lightgreen 0px, lightgreen ${data['perc']}%, gray ${data['perc']}%, gray 100%); width: 80%; height: 30px;"></td>
+                        <td>${data['score']} / ${data['max_score']}</td>
+                    </tr>`
         }
 
-	    {% for team in teams %}
-            set_progress({{ team.team.id }}, {{ team.perc }})
-	    {% endfor %}
+		async function sleep(milliseconds) {
+            const date = Date.now();
+            let currentDate = null;
+            do {
+                currentDate = Date.now();
+            } while (currentDate - date < milliseconds);
+        }
 
-        setTimeout(() => {
-			window.location.reload()
-        }, 10000)
+		let pages = null
+
+        function get_pages() {
+			let xhr = new XMLHttpRequest()
+            xhr.open('GET', '/get_results/{{ event.id }}', true)
+			xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded")
+            xhr.responseType = 'json'
+
+            xhr.onload = () => {
+				if (xhr.readyState === XMLHttpRequest.DONE && xhr.status === 200) {
+
+					pages = xhr.response['data']
+
+                }
+            }
+
+			xhr.send()
+
+        }
+
+		get_pages()
+
+		let counter = 0
+        function print_data() {
+
+			let new_body = ''
+
+			pages[counter].forEach((team) => {
+				new_body += crete_row(team)
+            })
+
+            if (counter === pages.length - 1) {
+				get_pages()
+				counter = 0
+            } else {
+				counter++
+            }
+
+            document.getElementById('res-tb').innerHTML = new_body
+
+        }
+
+		setTimeout(print_data, 1000)
+		setInterval(print_data, 5000)
+
     </script>
 
 </body>

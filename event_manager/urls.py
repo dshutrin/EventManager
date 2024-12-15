@@ -15,6 +15,7 @@ urlpatterns = [
 	path('update_score', update_score),
 	path('events/<int:eid>/results', event_results),
 	path('update_game_scores', update_game_score),
+	path('get_results/<int:event_id>', get_results_event_),
 	path('login', login),
 	path('logout', logout),
 
