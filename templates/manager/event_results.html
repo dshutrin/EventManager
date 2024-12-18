@@ -46,7 +46,9 @@
             <thead>
                 <tr>
                     <th>Название команды</th>
-                    <th>Прогресс</th>
+                    {% for step in steps %}
+                        <th>Этап {{ step.number }}</th>
+                    {% endfor %}
                     <th>Баллы</th>
                 </tr>
             </thead>
@@ -60,23 +62,24 @@
     <script>
 
         function crete_row(data) {
-			return `<tr>
-                        <td>${data['name']}</td>
-                        <td id="2"
-                            style="background: linear-gradient(to right, lightgreen 0px, lightgreen ${data['perc']}%, gray ${data['perc']}%, gray 100%); width: 80%; height: 30px;"></td>
-                        <td>${data['score']} / ${data['max_score']}</td>
-                    </tr>`
-        }
+			let tr = document.createElement('tr')
 
-		async function sleep(milliseconds) {
-            const date = Date.now();
-            let currentDate = null;
-            do {
-                currentDate = Date.now();
-            } while (currentDate - date < milliseconds);
-        }
+            for (let i=0; i<data.length; i++) {
 
-		let pages = null
+				let td = document.createElement('td')
+                if (data[i] !== null)
+                    td.innerText = data[i]
+
+                tr.append(td)
+
+            }
+
+			tr.append(document.createElement('td'))
+
+			return tr
+        }
+        
+		let data = null
 
         function get_pages() {
 			let xhr = new XMLHttpRequest()
@@ -86,40 +89,96 @@
 
             xhr.onload = () => {
 				if (xhr.readyState === XMLHttpRequest.DONE && xhr.status === 200) {
-
-					pages = xhr.response['data']
-
+					data = xhr.response
                 }
             }
 
 			xhr.send()
-
         }
 
 		get_pages()
+        function init_teams_data() {
+			let pages = 2
+            let teams_data = []
 
-		let counter = 0
-        function print_data() {
+            for (let t=0; t < data['teams'].length; t++) {
 
-			let new_body = ''
+				let data_ = [data['teams'][t]]
 
-			pages[counter].forEach((team) => {
-				new_body += crete_row(team)
-            })
+                for (let i=0; i<data['steps'].length; i++) {
+					let marked = false
+					for (let k=0; k<data['marks'].length; k++) {
 
-            if (counter === pages.length - 1) {
-				get_pages()
-				counter = 0
-            } else {
-				counter++
+						if ((data['steps'][i][0] === data['marks'][k]['step_num']) && (data['marks'][k]['team'] === data['teams'][t])) {
+							data_.push(data['marks'][k]['score'])
+                            marked = true
+                        }
+
+                    }
+					if (marked === false) {
+						data_.push(null)
+                    }
+                }
+
+
+                teams_data.push(data_)
             }
-
-            document.getElementById('res-tb').innerHTML = new_body
-
+			return teams_data
         }
-
-		setTimeout(print_data, 1000)
-		setInterval(print_data, 5000)
+        
+		setTimeout(() => {
+			tdata = init_teams_data()
+            let rpp = 15
+            let pcount = 0
+        
+            if (tdata.length % rpp === 0) {
+                pcount = Math.floor(tdata.length / rpp)
+            } else {
+                pcount = Math.floor(tdata.length / rpp) + 1
+            }
+            let interval = 0
+            setInterval(()=>{
+                get_pages()
+                tdata = init_teams_data()
+                let table = document.getElementById('res-tb')
+                table.innerHTML = ''
+    
+                let pcount = 0
+    
+                if (tdata.length % rpp === 0) {
+                    pcount = Math.floor(tdata.length / rpp)
+                } else {
+                    pcount = Math.floor(tdata.length / rpp) + 1
+                }
+    
+                let cnt = 0;
+                let pages = []
+                let page = []
+                for (let i = 0; i < tdata.length; i++) {
+                    page.push(tdata[i])
+                    cnt++
+                    if (cnt === rpp) {
+                        cnt = 0
+                        pages.push(page)
+                        page = []
+                    }
+                }
+                if (page.length !== 0) {
+                    pages.push(page)
+                }
+                for (let i = 0; i < pages.length; i++) {
+                    setTimeout(() => {
+                        table.innerHTML = ""
+                        for (let k = 0; k < pages[i].length; k++) {
+                            table.append(crete_row(pages[i][k]))
+                        }
+                    }, i * 5000)
+                }
+                get_pages()
+                tdata = init_teams_data()
+    
+            }, pcount * 5000)
+        }, 1000)
 
     </script>
 

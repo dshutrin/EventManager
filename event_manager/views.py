@@ -135,7 +135,7 @@ def rm_event(request):
 def manage_event(request, eid):
 	event = Event.objects.get(id=eid)
 	teams = Team.objects.filter(event=event)
-	steps = Step.objects.filter(event=event)
+	steps = Step.objects.filter(event=event).order_by('number')
 	marks = Mark.objects.filter(step__event=event)
 
 	return render(request, 'manager/event_manage.html', {
@@ -150,7 +150,7 @@ def manage_event(request, eid):
 def event_results(request, eid):
 	event = Event.objects.get(id=eid)
 	teams = Team.objects.filter(event=event)
-	steps = Step.objects.filter(event=event)
+	steps = Step.objects.filter(event=event).order_by('number')
 	marks = Mark.objects.filter(step__event=event)
 
 	max_score = sum([x.max_scroe for x in steps])
@@ -167,12 +167,14 @@ def event_results(request, eid):
 		return render(request, 'manager/event_results.html', {
 			'event': event,
 			'teams': teams,
+			'steps': steps,
 			'max_score': max_score
 		})
 	else:
 		return render(request, 'manager/event_results.html', {
 			'event': event,
 			'teams': teams,
+			'steps': steps,
 			'max_score': 0
 		})
 
@@ -243,37 +245,22 @@ def get_results_event_(request, event_id):
 	if request.method == 'GET':
 
 		event = Event.objects.get(id=event_id)
+		steps = Step.objects.filter(event=event).order_by('number')
 		teams = Team.objects.filter(event=event)
 
-		data = []
-		mx_score = sum([x.max_scroe for x in Step.objects.filter(event=event)])
-
-		for team in teams:
-			tms = Mark.objects.filter(step__event=event, team=team)
-			data.append({
-				'name': team.name,
-				'score': sum([x.points for x in tms]),
-				'perc': (sum([x.points for x in tms]) / mx_score) * 100,
-				'max_score': mx_score
-			})
-
-		data = sorted(data, key=lambda x: x['score'], reverse=True)
-
-		out_data = [
-			[]
-		]
-		counter = 0
-
-		for el in data:
-			counter += 1
-			if counter == 15:
-				counter = 0
-				out_data[-1].append(el)
-				out_data.append([])
-			else:
-				out_data[-1].append(el)
+		max_score = sum([x.max_scroe for x in steps])
 
 		return JsonResponse({
-			'data': out_data,
-			'pages': len(out_data)
-		})
+			'max_score': max_score,
+			'teams': [x.name for x in teams],
+			'steps': [
+				[x.number, x.max_scroe] for x in steps
+			],
+			'marks': [
+				{
+					'team': x.team.name,
+					'step_num': x.step.number,
+					'score': x.points
+				} for x in Mark.objects.filter(step__event=event)
+			]
+		}, status=200)
