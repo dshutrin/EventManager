@@ -250,6 +250,15 @@ def get_results_event_(request, event_id):
 
 		max_score = sum([x.max_scroe for x in steps])
 
+		total_points = []
+
+		for team in teams:
+			tp = sum([x.points for x in Mark.objects.filter(step__event=event, team=team)])
+			total_points.append({
+				'team': team.name,
+				'points': tp
+			})
+
 		return JsonResponse({
 			'max_score': max_score,
 			'teams': [x.name for x in teams],
@@ -262,5 +271,6 @@ def get_results_event_(request, event_id):
 					'step_num': x.step.number,
 					'score': x.points
 				} for x in Mark.objects.filter(step__event=event)
-			]
+			],
+			'total_points': total_points
 		}, status=200)

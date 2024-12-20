@@ -61,7 +61,8 @@
 
     <script>
 
-        function crete_row(data) {
+        function crete_row(data, tps) {
+
 			let tr = document.createElement('tr')
 
             for (let i=0; i<data.length; i++) {
@@ -74,7 +75,17 @@
 
             }
 
-			tr.append(document.createElement('td'))
+            for (let t=0; t<tps.length; t++) {
+
+                if (tps[t]['team'] === data[0]) {
+
+					let ttd = document.createElement('td')
+                    ttd.innerText = tps[t]['points']
+                    tr.append(ttd)
+
+                }
+
+            }
 
 			return tr
         }
@@ -120,17 +131,16 @@
                     }
                 }
 
-
                 teams_data.push(data_)
             }
 			return teams_data
         }
-        
+
 		setTimeout(() => {
 			tdata = init_teams_data()
             let rpp = 15
             let pcount = 0
-        
+
             if (tdata.length % rpp === 0) {
                 pcount = Math.floor(tdata.length / rpp)
             } else {
@@ -170,7 +180,7 @@
                     setTimeout(() => {
                         table.innerHTML = ""
                         for (let k = 0; k < pages[i].length; k++) {
-                            table.append(crete_row(pages[i][k]))
+                            table.append(crete_row(pages[i][k], data['total_points']))
                         }
                     }, i * 5000)
                 }
